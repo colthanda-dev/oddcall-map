@@ -1,0 +1,14 @@
+map.appalachianparanormal.org {
+    encode gzip
+    handle_path /media/* {
+        root * /srv/media
+        file_server
+        header Cache-Control "public, max-age=604800"
+    }
+    handle {
+        reverse_proxy app:8000
+    }
+    log {
+        output file /data/access.log
+    }
+}

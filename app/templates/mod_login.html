@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Moderator login{% endblock %}
+{% block body %}
+<h1>Moderator login</h1>
+{% if sent %}<p>If that address is on the list, a login link is on its way. It works for 15 minutes.</p>
+{% else %}<form method="post" style="max-width:360px"><label class="k">Email</label><input type="email" name="email" required autofocus><p></p><button>Send me a login link</button></form>{% endif %}
+{% endblock %}

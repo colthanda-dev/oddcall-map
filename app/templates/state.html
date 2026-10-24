@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} sightings and anomaly reports · {{ site_name }}{% endblock %}
+{% block desc %}{{ total }} anomaly reports in {{ name }}: UAP, cryptids, apparitions, sounds and lights, by county and decade, with provenance.{% endblock %}
+{% block body %}
+<h1>{{ name }}: {{ total }} reports</h1>
+<div class="grid">
+  <div>
+    <div id="smap" class="minimap" style="height:320px"></div>
+    <h3>By category</h3>
+    {% for c in cats %}<div class="bar"><span style="width:90px">{{ c.category }}</span><i style="width:{{ (c.n / (cats[0].n or 1) * 200)|int }}px"></i><span>{{ c.n }}</span></div>{% endfor %}
+    {% if decades %}<h3>By decade</h3>{% set mx = decades|map(attribute='n')|max %}{% for d in decades %}<div class="bar"><span style="width:90px">{{ d.decade }}</span><i style="width:{{ (d.n / (mx or 1) * 200)|int }}px"></i><span>{{ d.n }}</span></div>{% endfor %}{% endif %}
+  </div>
+  <div>
+    <h3>Counties</h3>
+    <table><tr><th>County</th><th>Reports</th></tr>{% for c in counties %}<tr><td><a href="{{ url_for('public.county', st=code, cslug=c.slug) }}">{{ c.county }}</a></td><td>{{ c.n }}</td></tr>{% endfor %}</table>
+    <h3>Alerts</h3>
+    <form method="post" action="{{ url_for('public.subscribe') }}" class="row"><input type="hidden" name="state" value="{{ code }}"><input type="email" name="email" placeholder="you@example.com" required><button>Email me new {{ code }} reports</button></form>
+  </div>
+</div>
+<h2>Recent</h2>
+{% for p in recent %}<div class="card"><div class="k">{{ p.category }} · {{ p.event_date or 'date not recorded' }} · {{ p.county ~ ' Co.' if p.county else '' }}</div><a href="{{ p.url }}">{{ (p.narrative or '')[:160] }}</a></div>{% endfor %}
+{% endblock %}
+{% block scripts %}<script>(function(){ var m = OC.base('smap'); m.setView({{ center|tojson }}, 6); OC.load(m, '/api/reports.geojson?state={{ code }}'); })();</script>{% endblock %}

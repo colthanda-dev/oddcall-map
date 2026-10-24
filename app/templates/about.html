@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Method · {{ site_name }}{% endblock %}
+{% block body %}
+<h1>How this map works</h1>
+<p>Every pin is a report, not a verdict. The map records who said what, when, and how it got here. It never says a report is true or false.</p>
+<h2>Three dates, kept apart</h2>
+<p><b>When it happened.</b> <b>When the witness first told anyone.</b> <b>When it hit the public record.</b> Most databases collapse these into one date and lose the only thing that lets you judge a story. We keep all three, and a blank stays blank.</p>
+<h2>Three layers, never mixed</h2>
+<p>Documented history. Folklore with named sources. Anomalous reports with full provenance. A report page tells you which layer it belongs to by its source and its credibility tier.</p>
+<h2>Credibility tiers</h2>
+<p>Set by a moderator, never by votes. The tier describes provenance, not truth.</p>
+<table>
+<tr><th>Tier</th><th>Means</th></tr>
+<tr><td><span class="tier field_verified">Field verified</span></td><td>A moderator interviewed the witness or visited the site; all three dates recorded.</td></tr>
+<tr><td><span class="tier witness_direct">Witness, direct</span></td><td>First-hand account through the hotline or the form, with usable contact.</td></tr>
+<tr><td><span class="tier witness_anonymous">Witness, anonymous</span></td><td>First-hand account, no contact or contact declined.</td></tr>
+<tr><td><span class="tier unverified_public">Public record, unverified</span></td><td>Pulled from a public database or forum. Excerpt shown; the full account stays at its source.</td></tr>
+<tr><td><span class="tier secondhand">Secondhand</span></td><td>Someone reporting what another person saw.</td></tr>
+<tr><td><span class="tier disputed">Disputed</span></td><td>Flagged by a moderator with a stated reason.</td></tr>
+</table>
+<h2>What gets published, and what does not</h2>
+<p>Nothing goes up without a human click. The public pin is offset 300 to 800 m from the reported point and never sits on a home. Witness contact never leaves the moderator screen. We do not name private individuals as hoaxers or perpetrators, do not publish reports that appear to come from or involve a minor, and reject promotional content.</p>
+<h2 id="takedown">Takedowns and corrections</h2>
+<p>Every report page has a removal link. We act within 48 hours, no questions. Property owners can ask that their land be removed from the map.</p>
+<h2>What you grant by submitting</h2>
+<p>You keep the copyright. You grant {{ org }} a non-exclusive license to publish the report on this map, on Oddcall Radio if you said yes to that, and in its books, under the name you chose. You can withdraw it any time with the removal link.</p>
+<h2>Sources</h2>
+<p>Public-record pins come from the strangeness-crawler, which reads NUFORC, BFRO, Reddit and selected feeds nightly. Reddit pins show the subreddit and a link, never a username. Hotline: {{ hotline }}.</p>
+{% endblock %}

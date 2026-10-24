@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}File a report · {{ site_name }}{% endblock %}
+{% block body %}
+<h1>File a report</h1>
+<p>Rather text or call? <a href="tel:{{ hotline|replace(' ', '')|replace('(', '')|replace(')', '')|replace('-', '') }}"><b>{{ hotline }}</b></a>. Same queue, same person reads it.</p>
+<form method="post" enctype="multipart/form-data" id="rf">
+  <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off">
+  <h3>What</h3>
+  <div class="row">
+    <div><label class="k">Category</label><select name="category" required>{% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></div>
+    <div><label class="k">What would you call it (optional)</label><input name="subcategory" placeholder="orb, dogman, hum, panther..."></div>
+  </div>
+  <label class="k">What happened, in your own words</label>
+  <textarea name="narrative" required minlength="20" placeholder="Where you were, what you saw or heard, how long it lasted, who else was there."></textarea>
+  <h3>Where</h3>
+  <p class="small">Tap the map to drop a pin, or fill in the place. The public pin is moved 300 to 800 m from your point; your exact spot never shows.</p>
+  <div id="pick" class="minimap"></div>
+  <input type="hidden" name="lat" id="lat"><input type="hidden" name="lng" id="lng">
+  <div class="row">
+    <div><label class="k">Town or crossroads</label><input name="place" placeholder="Millfield, Rt 13 near the tipple"></div>
+    <div><label class="k">County</label><input name="county" placeholder="Athens"></div>
+    <div><label class="k">State</label><select name="state"><option value="">--</option>{% for code, name in states.items() %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></div>
+  </div>
+  <h3>When</h3>
+  <p class="small">Three dates, kept separate. A year is fine if that is all you have.</p>
+  <div class="row">
+    <div><label class="k">When it happened</label><input name="event_date" placeholder="2019-07-14, 2019-07, or 2019"></div>
+    <div><label class="k">When you first told anyone</label><input name="first_told_date" placeholder="2019-07-15 or 2023"></div>
+  </div>
+  <h3>Photos</h3>
+  <input type="file" name="photos" accept="image/*" multiple><p class="small">Up to 4. Location and camera data are stripped before anything is saved.</p>
+  <h3>You</h3>
+  <div class="row">
+    <div><label class="k">Name (optional)</label><input name="name"></div>
+    <div><label class="k">Show me as</label><select name="anonymity">{% for a in anonymity %}<option value="{{ a }}">{{ a|replace('_',' ') }}</option>{% endfor %}</select></div>
+  </div>
+  <label class="k">Contact (optional, never published)</label><input name="contact" placeholder="email or phone, if we may follow up">
+  <p><label><input type="checkbox" name="broadcast" value="yes" style="width:auto"> This may be read on Oddcall Radio, under the name shown above.</label></p>
+  <p><label><input type="checkbox" name="age_ok" value="yes" style="width:auto" required> I am 18 or older. I understand {{ org }} may publish this report on the map and in its books and programs with the name shown above, and that I keep the copyright and can ask for it to come down at any time.</label></p>
+  <button>Send it in</button>
+</form>
+{% endblock %}
+{% block scripts %}<script>
+(function(){ var m = OC.base('pick', {scroll:false}); m.setView([39.0,-82.0], 6); var mk;
+  m.on('click', function(e){ document.getElementById('lat').value = e.latlng.lat.toFixed(5); document.getElementById('lng').value = e.latlng.lng.toFixed(5); if(mk) mk.setLatLng(e.latlng); else mk = L.circleMarker(e.latlng, {radius:8, color:'#F07A2A', fillColor:'#F07A2A', fillOpacity:.9}).addTo(m); });
+  if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(function(p){ m.setView([p.coords.latitude, p.coords.longitude], 11); }, function(){}); }
+})();
+</script>{% endblock %}

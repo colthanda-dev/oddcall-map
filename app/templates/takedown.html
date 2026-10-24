@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Request removal · {{ site_name }}{% endblock %}
+{% block body %}
+<h1>Request removal or correction</h1>
+<p>Report <code>{{ rid }}</code>. We act within 48 hours. You do not have to give a reason.</p>
+<form method="post">
+  <label class="k">What should change (optional)</label><textarea name="reason" placeholder="Take it down / the county is wrong / my name should not show"></textarea>
+  <label class="k">How to reach you (optional)</label><input name="contact" placeholder="email or phone">
+  <button>Send</button>
+</form>
+{% endblock %}

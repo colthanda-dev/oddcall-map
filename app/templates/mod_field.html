@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Field entry · {{ site_name }}{% endblock %}
+{% block body %}
+<div class="k"><a href="{{ url_for('mod.queue') }}">Queue</a></div>
+<h1>Field interview entry</h1>
+<p class="small">Your own fieldwork. Three dates, source record, tier. It lands in the queue; approve it from there so the audit trail shows two steps.</p>
+<form method="post">
+  <div class="row"><div><label class="k">Category</label><select name="category">{% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></div><div><label class="k">Subcategory</label><input name="subcategory"></div></div>
+  <label class="k">Narrative (witness's words, verbatim where you have them)</label><textarea name="narrative" required></textarea>
+  <div id="pick" class="minimap"></div><input type="hidden" name="lat" id="lat"><input type="hidden" name="lng" id="lng">
+  <div class="row"><div><label class="k">Place</label><input name="place"></div><div><label class="k">County</label><input name="county"></div><div><label class="k">State</label><select name="state"><option value="">--</option>{% for code, name in states.items() %}<option value="{{ code }}">{{ code }}</option>{% endfor %}</select></div></div>
+  <div class="row"><div><label class="k">Happened</label><input name="event_date" placeholder="2003-10 or 1998"></div><div><label class="k">First told</label><input name="first_told_date"></div><div><label class="k">Public record</label><input name="public_record_date" placeholder="blank until published"></div></div>
+  <label class="k">Source record (notebook, interview file, recording id)</label><input name="source_ref" placeholder="Field notes vol. 7 p. 41; interview 2024-03-02">
+  <div class="row"><div><label class="k">Witness shown as</label><input name="witness_display" placeholder="Anonymous / J.R. / a retired miner"></div><div><label class="k">Anonymity</label><select name="anonymity"><option>anonymous</option><option>initials</option><option>first_name</option><option>full_name</option></select></div></div>
+  <label class="k">Witness contact (private)</label><input name="contact">
+  <div class="row"><div><label class="k">Tier</label><select name="tier">{% for t in tiers %}<option value="{{ t }}">{{ tier_label[t] }}</option>{% endfor %}</select></div></div>
+  <label class="k">Tier note (public)</label><input name="credibility_note" placeholder="Interviewed at the site, 2024-03-02. Dog reacted at the culvert.">
+  <label class="k">Moderator notes (private)</label><textarea name="moderator_notes" style="min-height:60px"></textarea>
+  <p><label><input type="checkbox" name="broadcast" value="1" style="width:auto"> Broadcast consent on file</label></p>
+  <button>Save to queue</button>
+</form>
+{% endblock %}
+{% block scripts %}<script>(function(){ var m = OC.base('pick', {scroll:false}); m.setView([39.4,-82.1], 9); var mk; m.on('click', function(e){ document.getElementById('lat').value=e.latlng.lat.toFixed(5); document.getElementById('lng').value=e.latlng.lng.toFixed(5); if(mk) mk.setLatLng(e.latlng); else mk=L.circleMarker(e.latlng,{radius:8,color:'#F07A2A',fillColor:'#F07A2A',fillOpacity:.9}).addTo(m); }); })();</script>{% endblock %}

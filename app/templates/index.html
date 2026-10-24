@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block mainclass %}full{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+<style>.marker-cluster{background:rgba(240,122,42,.35)}.marker-cluster div{background:rgba(240,122,42,.8);color:#111;font-weight:700}</style>
+{% endblock %}
+{% block body %}
+<div class="mapwrap">
+  <div id="map"></div>
+  <div class="panel filters">
+    <div class="k">{{ total }} reports on the board</div>
+    <label>Region</label>
+    <select id="f-region">
+      <option value="">Home view</option>
+      {% for name, codes in regions.items() %}<option value="{{ codes|join(',') }}">{{ name }}</option>{% endfor %}
+      <optgroup label="State">
+      {% for code, name in state_names.items() if code in centroids %}<option value="{{ code }}">{{ name }}</option>{% endfor %}
+      </optgroup>
+    </select>
+    <label>Category</label>
+    <select id="f-category"><option value="">All</option>{% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+    <label>Credibility</label>
+    <select id="f-tier"><option value="">All</option>{% for t in tiers %}<option value="{{ t }}">{{ tier_label[t] }}</option>{% endfor %}</select>
+    <label>Source</label>
+    <select id="f-source"><option value="">All</option>{% for s in sources %}<option value="{{ s }}">{{ s|replace('_',' ') }}</option>{% endfor %}</select>
+    <label>From year</label><input id="f-from" type="number" min="1800" max="2100" placeholder="1966">
+    <label>To year</label><input id="f-to" type="number" min="1800" max="2100" placeholder="2026">
+    <div style="margin-top:8px"><button id="f-go">Apply</button></div>
+    <div class="small" style="margin-top:8px"><span id="f-count"></span></div>
+    <div class="small" style="margin-top:8px">Pins are offset 300 to 800 m from the reported point. Fainter pins are public records nobody here has verified.</div>
+  </div>
+  <div class="legend panel">
+    <div><i class="cat" style="background:#F07A2A"></i>UAP</div><div><i class="cat" style="background:#E0B341"></i>Light</div><div><i class="cat" style="background:#7DBB6E"></i>Cryptid</div>
+    <div><i class="cat" style="background:#9B8CDB"></i>Apparition</div><div><i class="cat" style="background:#5FB3C9"></i>Sound</div><div><i class="cat" style="background:#C98B5F"></i>Animal</div><div><i class="cat" style="background:#8A877A"></i>Other</div>
+  </div>
+  <div class="panel recent">
+    {% for p in recent %}<div class="card"><div class="k">{{ p.category }} · {{ p.event_date or 'date not recorded' }}</div><div class="t"><a href="{{ p.url }}">{{ (p.narrative or '')[:110] }}{% if (p.narrative or '')|length > 110 %}...{% endif %}</a></div><div class="small">{{ [p.place, p.county ~ ' Co.' if p.county else none, p.state]|select|join(', ') }}</div></div>
+    {% else %}<div class="card">No reports on the board yet. The first one is yours: <a href="{{ url_for('submit.form') }}">file it</a> or call {{ hotline }}.</div>{% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+<script>
+(function(){
+  var HOME = {{ home_bounds|tojson }}, CENT = {{ centroids|tojson }};
+  var map = OC.base('map'); map.fitBounds(HOME);
+  var group = (L.markerClusterGroup ? L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 11 }) : L.layerGroup()).addTo(map);
+  function q(id){ return document.getElementById(id).value; }
+  function go(){
+    var p = new URLSearchParams();
+    ['category','tier','source'].forEach(function(k){ if(q('f-'+k)) p.set(k, q('f-'+k)); });
+    if(q('f-from')) p.set('from', q('f-from')+'-01-01'); if(q('f-to')) p.set('to', q('f-to')+'-12-31');
+    var reg = q('f-region');
+    if(reg && reg.length===2){ p.set('state', reg); map.setView(CENT[reg], 7); }
+    else if(reg){ map.fitBounds(HOME); }
+    else { map.fitBounds(HOME); }
+    OC.load(map, '/api/reports.geojson?'+p.toString(), group).then(function(n){ document.getElementById('f-count').textContent = n + ' shown'; });
+  }
+  document.getElementById('f-go').addEventListener('click', go);
+  document.getElementById('f-region').addEventListener('change', go);
+  go();
+})();
+</script>
+{% endblock %}

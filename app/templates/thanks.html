@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Got it.</h1>
+<p>A person reads every report before it goes on the map, usually within a day. If it does not go up, and you left contact info, you'll hear why.</p>
+<p>Something else to add? Call or text {{ hotline }}.</p>
+<p><a class="btn" href="{{ url_for('public.index') }}">Back to the map</a></p>
+{% endblock %}

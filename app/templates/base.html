@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site_name }}{% endblock %}</title>
+<meta name="description" content="{% block desc %}Anomaly reports across Appalachia, the Midwest, the Great Lakes and New England. Every pin carries its provenance.{% endblock %}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+<header class="top">
+  <a class="brand" href="{{ url_for('public.index') }}">{{ site_name }}</a>
+  <nav>
+    <a href="{{ url_for('public.index') }}">Map</a>
+    <a href="{{ url_for('submit.form') }}">Report</a>
+    <a href="{{ url_for('public.about') }}">Method</a>
+    <a class="hot" href="tel:{{ hotline|replace(' ', '')|replace('(', '')|replace(')', '')|replace('-', '') }}">{{ hotline }}</a>
+  </nav>
+</header>
+{% with msgs = get_flashed_messages() %}{% if msgs %}<div class="flash">{% for m in msgs %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+<main class="{% block mainclass %}wrap{% endblock %}">
+{% block body %}{% endblock %}
+</main>
+<footer class="foot">
+  <div>{{ org }} · Reports are witness accounts and public records, published with provenance. The map does not say a report is true.</div>
+  <div><a href="{{ url_for('public.about') }}">How reports are rated</a> · <a href="{{ url_for('public.about') }}#takedown">Takedowns</a> · <a href="{{ url_for('mod.login') }}" rel="nofollow">Moderators</a></div>
+</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" crossorigin=""></script>
+<script src="{{ url_for('static', filename='map.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

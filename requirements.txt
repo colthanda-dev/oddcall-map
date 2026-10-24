@@ -1,0 +1,11 @@
+Flask>=3.1
+Werkzeug>=3.1
+Jinja2>=3.1
+itsdangerous>=2.2
+Pillow>=10
+requests>=2.31
+cryptography>=42
+psycopg[binary]>=3.1
+gunicorn>=22
+click>=8
+pytest>=8

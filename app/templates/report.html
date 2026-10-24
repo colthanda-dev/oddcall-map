@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ r.category|capitalize }}{% if r.subcategory %} · {{ r.subcategory }}{% endif %} near {{ r.place or r.county ~ ' County' if r.county else r.state }} · {{ site_name }}{% endblock %}
+{% block desc %}{{ (r.narrative or '')[:150] }}{% endblock %}
+{% block body %}
+<div class="k">{{ r.category }}{% if r.subcategory %} · {{ r.subcategory }}{% endif %} · <span class="tier {{ r.credibility_tier }}">{{ r.credibility_label }}</span></div>
+<h1>{{ [r.place, r.county ~ ' County' if r.county else none, state_names.get(r.state, r.state)]|select|join(', ') or 'Location withheld' }}</h1>
+<div class="grid">
+  <div>
+    <div class="dates">
+      <span class="k">Happened</span><span>{{ r.event_date|nice_date }}{% if r.event_date_precision in ('month','year') %} <small>({{ r.event_date_precision }} only)</small>{% endif %}</span>
+      <span class="k">First told</span><span>{{ r.first_told_date|nice_date }}</span>
+      <span class="k">Public record</span><span>{{ r.public_record_date|nice_date }}</span>
+      <span class="k">Witness</span><span>{{ r.witness }}</span>
+      <span class="k">Source</span><span>{{ r.source_type|replace('_',' ') }}{% if r.source_name %} · {{ r.source_name }}{% endif %}{% if r.source_ref %} · <a href="{{ r.source_ref }}" rel="nofollow noopener">original</a>{% endif %}</span>
+    </div>
+    {% if r.credibility_note %}<p class="small">{{ r.credibility_note }}</p>{% endif %}
+    <div class="narr">{{ r.narrative }}</div>
+    {% if r.source_type == 'crawler' %}<p class="small">Excerpt of a public record. Read the full account at the source link.</p>{% endif %}
+    {% if r.media %}<div class="photos">{% for m in r.media %}<img src="{{ m.url }}" alt="Witness photo" loading="lazy">{% endfor %}</div>{% endif %}
+    <p class="small"><button class="ghost" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(location.href);this.textContent='Link copied'">Copy link</button>
+    <a class="btn ghost" href="{{ url_for('public.takedown', rid=r.id) }}">Request removal or correction</a></p>
+  </div>
+  <div>
+    {% if r.lat %}<div id="mini" class="minimap"></div><p class="small">Pin offset from the reported point. {% if r.county %}<a href="{{ url_for('public.county', st=r.state, cslug=r.county_slug) }}">All {{ r.county }} County reports</a>{% endif %}</p>{% endif %}
+    {% if near %}<h3>Nearby</h3>{% for p in near %}<div class="card"><div class="k">{{ p.category }} · {{ p.event_date or 'date not recorded' }}</div><a href="{{ p.url }}">{{ (p.narrative or '')[:120] }}</a></div>{% endfor %}{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}{% if r.lat %}<script>
+(function(){ var m = OC.base('mini', {scroll:false}); m.setView([{{ r.lat }}, {{ r.lng }}], 11); OC.pin({{ r|tojson }}, [{{ r.lat }}, {{ r.lng }}]).addTo(m); })();
+</script>{% endif %}{% endblock %}

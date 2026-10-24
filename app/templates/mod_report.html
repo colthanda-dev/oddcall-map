@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Review · {{ site_name }}{% endblock %}
+{% block body %}
+<div class="k"><a href="{{ url_for('mod.queue') }}">Queue</a> · {{ r.status }} · {{ r.source_type|replace('_',' ') }} · {{ r.id }}</div>
+<h1>{{ [r.place, r.county ~ ' County' if r.county else none, r.state]|select|join(', ') or 'No location yet' }}</h1>
+{% if r.flags %}<div class="flags">{% for f in r.flags %}<span>{{ f }}</span>{% endfor %}</div>{% endif %}
+<div class="grid">
+<div>
+  <h3>Narrative (verbatim, never edited)</h3>
+  <div class="narr">{{ r.narrative }}</div>
+  {% if r.redacted_narrative %}<h3>Public version (redacted)</h3><div class="narr">{{ r.redacted_narrative }}</div>{% endif %}
+  {% for m in r.media_items %}{% if m.kind == 'photo' %}<img src="{{ m.url }}" style="max-width:100%;margin:4px 0">{% elif m.kind == 'audio' %}<audio controls src="{{ m.url }}" style="width:100%"></audio>{% endif %}{% endfor %}
+  <h3>Witness (moderator only)</h3>
+  <p>Shown as: <b>{{ r.witness_display or 'Anonymous' }}</b> ({{ r.witness_anonymity }}) · Contact: <b>{{ r.contact_plain or 'none' }}</b> · Broadcast: {{ 'yes' if r.broadcast_consent else 'no' }}</p>
+  <p class="small">Notes: {{ r.moderator_notes or '' }}</p>
+  {% if r.lat %}<div id="mm" class="minimap"></div><p class="small">Red = exact (moderator only). Orange = public pin.</p>{% endif %}
+
+  {% if r.status == 'pending' %}
+  <h3>Decide</h3>
+  <form method="post" action="{{ url_for('mod.approve', rid=r.id) }}" class="row">
+    <select name="tier">{% for t in tiers %}<option value="{{ t }}" {% if t == r.credibility_tier %}selected{% endif %}>{{ tier_label[t] }}</option>{% endfor %}</select>
+    <button>Approve and publish</button>
+  </form>
+  <form method="post" action="{{ url_for('mod.reject', rid=r.id) }}" class="row" style="margin-top:8px">
+    <select name="reason">{% for k, v in reasons.items() %}<option value="{{ k }}">{{ k }}: {{ v }}</option>{% endfor %}</select>
+    <button class="danger">Reject and notify</button>
+  </form>
+  {% if cands %}
+  <h3>Possible duplicates (within 2 km / 7 days)</h3>
+  {% for c in cands %}<div class="card"><div class="k">{{ c.category }} · {{ c.event_date or '--' }} · {{ c.source_type }}</div>{{ (c.narrative or '')[:200] }}
+    <form method="post" action="{{ url_for('mod.merge', rid=r.id) }}" style="margin-top:6px"><input type="hidden" name="into" value="{{ c.id }}"><button class="ghost">Merge into this one</button></form></div>{% endfor %}
+  {% endif %}
+  {% elif r.status == 'approved' %}
+  <form method="post" action="{{ url_for('mod.takedown', rid=r.id) }}"><button class="danger">Take down</button></form>
+  {% endif %}
+</div>
+<div>
+  <h3>Edit</h3>
+  <form method="post" action="{{ url_for('mod.edit', rid=r.id) }}">
+    <div class="row"><div><label class="k">Category</label><select name="category">{% for c in categories %}<option value="{{ c }}" {% if c == r.category %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label class="k">Subcategory</label><input name="subcategory" value="{{ r.subcategory or '' }}"></div></div>
+    <label class="k">Happened (YYYY, YYYY-MM, YYYY-MM-DD)</label><input name="event_date" value="{{ r.event_date or '' }}">
+    <label class="k">First told</label><input name="first_told_date" value="{{ r.first_told_date or '' }}">
+    <label class="k">Public record</label><input name="public_record_date" value="{{ r.public_record_date or '' }}">
+    <div class="row"><div><label class="k">Place</label><input name="place" value="{{ r.place or '' }}"></div><div><label class="k">County</label><input name="county" value="{{ r.county or '' }}"></div>
+    <div><label class="k">State</label><select name="state"><option value="">--</option>{% for code, name in states.items() %}<option value="{{ code }}" {% if code == r.state %}selected{% endif %}>{{ code }}</option>{% endfor %}</select></div></div>
+    <div class="row"><div><label class="k">Exact lat</label><input name="lat" value="{{ r.lat if r.lat is not none else '' }}"></div><div><label class="k">Exact lng</label><input name="lng" value="{{ r.lng if r.lng is not none else '' }}"></div></div>
+    <label class="k">Tier</label><select name="tier">{% for t in tiers %}<option value="{{ t }}" {% if t == r.credibility_tier %}selected{% endif %}>{{ tier_label[t] }}</option>{% endfor %}</select>
+    <label class="k">Tier note (public)</label><input name="credibility_note" value="{{ r.credibility_note or '' }}">
+    <label class="k">Moderator notes (private)</label><textarea name="moderator_notes" style="min-height:70px">{{ r.moderator_notes or '' }}</textarea>
+    <p><label><input type="checkbox" name="broadcast" value="1" style="width:auto" {% if r.broadcast_consent %}checked{% endif %}> Broadcast consent</label></p>
+    <button>Save</button>
+  </form>
+  <h3>Redact (public copy only)</h3>
+  <form method="post" action="{{ url_for('mod.redact', rid=r.id) }}"><textarea name="redacted_narrative" style="min-height:90px">{{ r.redacted_narrative or r.narrative }}</textarea><button class="ghost">Save redaction</button></form>
+  <h3>Re-place public pin</h3>
+  <form method="post" action="{{ url_for('mod.fuzz', rid=r.id) }}" class="row"><input name="min_m" type="number" value="300"><input name="max_m" type="number" value="800"><button class="ghost">Re-fuzz (metres)</button></form>
+  <h3>Audit</h3>
+  {% for l in log %}<div class="small">{{ l.at }} · {{ l.actor }} · <b>{{ l.action }}</b> {{ l.detail or '' }}</div>{% endfor %}
+</div>
+</div>
+{% endblock %}
+{% block scripts %}{% if r.lat %}<script>(function(){ var m = OC.base('mm', {scroll:false}); m.setView([{{ r.lat }}, {{ r.lng }}], 12);
+L.circleMarker([{{ r.lat }}, {{ r.lng }}], {radius:7, color:'#D9534F', fillColor:'#D9534F', fillOpacity:.9}).addTo(m);
+{% if r.public_lat %}L.circleMarker([{{ r.public_lat }}, {{ r.public_lng }}], {radius:7, color:'#F07A2A', fillColor:'#F07A2A', fillOpacity:.9}).addTo(m);{% endif %} })();</script>{% endif %}{% endblock %}

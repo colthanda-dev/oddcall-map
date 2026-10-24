@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Queue · {{ site_name }}{% endblock %}
+{% block body %}
+<div class="row" style="justify-content:space-between">
+  <h1>Queue</h1>
+  <div style="text-align:right"><a class="btn ghost" href="{{ url_for('mod.field_form') }}">+ Field entry</a> <a class="btn ghost" href="{{ url_for('mod.logout') }}">Log out</a></div>
+</div>
+<p>{% for s in ['pending','approved','rejected','merged','all'] %}<a class="btn ghost" href="{{ url_for('mod.queue', status=s) }}" {% if s == status %}style="border-color:#F07A2A!important"{% endif %}>{{ s }} {{ counts.get(s, '') if s != 'all' else '' }}</a> {% endfor %}</p>
+{% if takedowns %}<h3>Takedown requests</h3>{% for t in takedowns %}<div class="card small">{{ t.at }} · <a href="{{ url_for('mod.report', rid=t.report_id) }}">{{ t.report_id[:8] }}</a> · {{ t.detail }}</div>{% endfor %}{% endif %}
+<table>
+<tr><th>Submitted</th><th>Source</th><th>Where</th><th>When</th><th>Category</th><th>Flags</th><th></th></tr>
+{% for r in rows %}
+<tr>
+  <td class="small">{{ r.submitted_at[:16]|replace('T',' ') }}</td>
+  <td class="small">{{ r.source_type|replace('_',' ') }}{% if r.source_name %}<br>{{ r.source_name }}{% endif %}</td>
+  <td>{{ [r.place, r.county ~ ' Co.' if r.county else none, r.state]|select|join(', ') or ('no location' if not r.lat else 'pin only') }}</td>
+  <td>{{ r.event_date or '--' }}</td>
+  <td>{{ r.category }}</td>
+  <td class="flags">{% for f in r.flags %}<span>{{ f }}</span>{% endfor %}</td>
+  <td><a class="btn" href="{{ url_for('mod.report', rid=r.id) }}">Open</a></td>
+</tr>
+{% else %}<tr><td colspan="7">Nothing here.</td></tr>{% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ county }} County, {{ state_name }} sightings · {{ site_name }}{% endblock %}
+{% block desc %}{{ reports|length }} anomaly reports in {{ county }} County, {{ state_name }}, by category and decade, with provenance.{% endblock %}
+{% block body %}
+<div class="k"><a href="{{ url_for('public.state', st=code) }}">{{ state_name }}</a></div>
+<h1>{{ county }} County: {{ reports|length }} reports</h1>
+<div class="grid">
+  <div>
+    <div id="cmap" class="minimap" style="height:300px"></div>
+    <h3>By category</h3>{% for c, n in cats %}<div class="bar"><span style="width:90px">{{ c }}</span><i style="width:{{ (n / (cats[0][1] or 1) * 200)|int }}px"></i><span>{{ n }}</span></div>{% endfor %}
+    {% if decades %}<h3>By decade</h3>{% set mx = decades|map(attribute=1)|max %}{% for d, n in decades %}<div class="bar"><span style="width:90px">{{ d }}</span><i style="width:{{ (n / (mx or 1) * 200)|int }}px"></i><span>{{ n }}</span></div>{% endfor %}{% endif %}
+    <h3>Alerts</h3>
+    <form method="post" action="{{ url_for('public.subscribe') }}" class="row"><input type="hidden" name="state" value="{{ code }}"><input type="hidden" name="county" value="{{ county }}"><input type="email" name="email" placeholder="you@example.com" required><button>Email me new {{ county }} County reports</button></form>
+    <p class="small">Saw something here? <a href="{{ url_for('submit.form') }}">File a report</a> or call {{ hotline }}.</p>
+  </div>
+  <div>
+    {% for p in reports %}<div class="card"><div class="k">{{ p.category }}{% if p.subcategory %} · {{ p.subcategory }}{% endif %} · {{ p.event_date or 'date not recorded' }} · <span class="tier {{ p.credibility_tier }}">{{ p.credibility_label }}</span></div><a href="{{ p.url }}">{{ (p.narrative or '')[:180] }}</a></div>{% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>(function(){ var m = OC.base('cmap'); m.setView({{ center|tojson }}, 9); OC.load(m, '/api/reports.geojson?state={{ code }}&county={{ county|urlencode }}'); })();</script>{% endblock %}
