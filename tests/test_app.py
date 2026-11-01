@@ -192,3 +192,52 @@ def test_hoax_flags_and_honeypot(client, app):
     r = client.post("/submit", data=dict(base, website="spam"))
     assert r.status_code == 302
     assert q.count("coords_suspicious") == 2  # honeypot submission was dropped
+
+
+def test_two_way_hotline(client, app):
+    """Moderator texts back and calls back from the hotline number; the witness's answer lands in the thread."""
+    import app.conversation as conv
+    sent = []
+
+    def fake_post(what, data):
+        sent.append((what, data))
+        if data.get("To") == "+17405550999":
+            return False, None, conv.TWILIO_ERRORS[21610]
+        return True, "SMfake" + str(len(sent)), None
+    orig = conv._post
+    conv._post = fake_post
+    try:
+        def sms(body, phone="+17405550123"):
+            return client.post("/hooks/twilio/sms", data={"From": phone, "Body": body, "NumMedia": "0", "MessageSid": "SM9"}).get_data(as_text=True)
+        for b in ("Thing on the haul road with eyes like brake lights", "Glouster, Ohio", "SKIP", "2", "YES"):
+            sms(b)
+        login(client, app)
+        rid = re.search(r"/mod/report/([0-9a-f-]{36})", client.get("/mod/").get_data(as_text=True)).group(1)
+        page = client.get(f"/mod/report/{rid}").get_data(as_text=True)
+        assert "Talk to the witness" in page and "Call them back" in page
+
+        r = client.post(f"/mod/report/{rid}/text", data={"body": "Can we air this on Oddcall Radio with your voice changed?"}, follow_redirects=True)
+        assert "Sent from the hotline number" in r.get_data(as_text=True)
+        assert sent[-1][0] == "Messages" and sent[-1][1]["From"] == "+17405085757" and sent[-1][1]["To"] == "+17405550123"
+
+        # their answer goes to the thread, not into a new report questionnaire
+        assert "Where did this happen" not in sms("Yeah go ahead, change my voice")
+        page = client.get(f"/mod/report/{rid}").get_data(as_text=True)
+        assert "Yeah go ahead, change my voice" in page
+        assert "Witnesses waiting on you" in client.get("/mod/").get_data(as_text=True)
+        assert any("texted back" in m["subject"] for m in app.extensions["outbox"])
+
+        # NEW starts a fresh report even inside an open thread
+        assert "New report" in sms("NEW")
+        assert "Where did this happen" in sms("Second thing, different night, lights over the reservoir")
+
+        # callback rings the moderator's cell, then dials the witness with the hotline as caller ID
+        client.post(f"/mod/report/{rid}/call")
+        what, data = sent[-1]
+        assert what == "Calls" and data["To"] == "+17405550101" and data["From"] == "+17405085757"
+        assert 'callerId="+17405085757"' in data["Twiml"] and "+17405550123" in data["Twiml"]
+
+        # STOP never starts a report
+        assert "Where did this happen" not in sms("STOP", phone="+17405550777")
+    finally:
+        conv._post = orig
