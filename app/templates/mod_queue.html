@@ -6,6 +6,7 @@
   <div style="text-align:right"><a class="btn ghost" href="{{ url_for('mod.field_form') }}">+ Field entry</a> <a class="btn ghost" href="{{ url_for('mod.logout') }}">Log out</a></div>
 </div>
 <p>{% for s in ['pending','approved','rejected','merged','all'] %}<a class="btn ghost" href="{{ url_for('mod.queue', status=s) }}" {% if s == status %}style="border-color:#F07A2A!important"{% endif %}>{{ s }} {{ counts.get(s, '') if s != 'all' else '' }}</a> {% endfor %}</p>
+{% if replies %}<h3>Witnesses waiting on you</h3>{% for m in replies %}<div class="card small">{{ m.at[:16]|replace('T',' ') }} · <a href="{{ url_for('mod.report', rid=m.report_id) }}#talk">{{ m.report_id[:8] }}</a> · {{ (m.body or '')[:140] }}</div>{% endfor %}{% endif %}
 {% if takedowns %}<h3>Takedown requests</h3>{% for t in takedowns %}<div class="card small">{{ t.at }} · <a href="{{ url_for('mod.report', rid=t.report_id) }}">{{ t.report_id[:8] }}</a> · {{ t.detail }}</div>{% endfor %}{% endif %}
 <table>
 <tr><th>Submitted</th><th>Source</th><th>Where</th><th>When</th><th>Category</th><th>Flags</th><th></th></tr>
