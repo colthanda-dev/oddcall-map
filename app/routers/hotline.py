@@ -143,6 +143,23 @@ def sms():
     upper = body.upper()
     s = _session(phone)
 
+    # Someone a moderator texted recently is answering that conversation, not filing a new report.
+    # Texting NEW starts a fresh report. Mid-questionnaire texts keep going to the questionnaire.
+    if upper in ("STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "START", "UNSTOP", "HELP"):
+        return twiml("")  # Twilio's own opt-out handling answers these
+    if upper == "NEW":
+        _save_session(phone, 0, {})  # step 0 = fresh report, skip the open conversation
+        return twiml(f"<Message>{_esc('New report. Text what you saw, where, and when.')}</Message>")
+    if not s:
+        from ..conversation import open_thread, log_message
+        t = open_thread(phone_ref(phone))
+        if t and upper != "MORE":
+            media, _ = _media_from_request(t["report_id"] + "-reply-" + now()[:10])
+            note = body + ("".join(f"\n[photo] {m.get('url')}" for m in media) if media else "")
+            log_message(phone_ref(phone), "in", note or "[empty text]", "witness", t["report_id"], request.form.get("MessageSid"), "received")
+            _ping_moderators(t["report_id"], body)
+            return twiml("")
+
     if upper == "MORE":
         db = get_db()
         last = db.one("SELECT id FROM reports WHERE source_ref=? AND status IN ('pending','approved') ORDER BY submitted_at DESC LIMIT 1", (phone_ref(phone),))
@@ -160,7 +177,7 @@ def sms():
         _clear_session(phone)
         return twiml("<Message>Added. Thanks.</Message>")
 
-    if not s:
+    if not s or s["step"] == 0:
         if not body and int(request.form.get("NumMedia", "0") or 0) == 0:
             return twiml(f"<Message>{_esc('Oddcall Strangeness Hotline. Text what you saw, where, and when, and we will take it from there.')}</Message>")
         draft = {"narrative": body, "sid": request.form.get("MessageSid"), "num_media": int(request.form.get("NumMedia", "0") or 0),
@@ -192,6 +209,15 @@ def sms():
         return twiml(f"<Message>{_esc(DONE)}</Message>")
     _clear_session(phone)
     return twiml(f"<Message>{_esc(Q[1])}</Message>")
+
+
+def _ping_moderators(report_id, body):
+    """Email every moderator when a witness answers, so nobody has to sit on the queue page."""
+    from .. import mailer
+    cfg = current_app.config
+    link = cfg["SITE_URL"].rstrip("/") + f"/mod/report/{report_id}#talk"
+    for email in cfg["MODERATOR_EMAILS"]:
+        mailer.send(email, "Oddcall: a witness texted back", f"{(body or '[photo]')[:500]}\n\nAnswer it: {link}")
 
 
 def phone_ref(phone):
