@@ -37,6 +37,13 @@ class Config:
     TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
     TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
     TWILIO_VALIDATE = env("TWILIO_VALIDATE", True, bool)
+    # Callbacks ring the moderator's own cell first, then dial the witness from the hotline number.
+    # MODERATOR_PHONES=colt@example.com:+17405550101,owen@example.com:+17405550102
+    MODERATOR_PHONES = {k.strip().lower(): v.strip() for k, v in
+                        (pair.split(":", 1) for pair in env("MODERATOR_PHONES", "").split(",") if ":" in pair)}
+    # After a moderator texts someone, their texts for this many days go to that conversation
+    # instead of starting a new report. Texting NEW starts a fresh report any time.
+    THREAD_DAYS = env("THREAD_DAYS", 14, int)
     # Email: Resend API. Blank key = print emails to the log instead.
     RESEND_API_KEY = env("RESEND_API_KEY")
     EMAIL_FROM = env("EMAIL_FROM", "Oddcall Map <map@appalachianparanormal.org>")
@@ -67,6 +74,7 @@ class TestConfig(Config):
     TWILIO_VALIDATE = False
     GEOCODE_ENABLED = False
     MODERATOR_EMAILS = ["colt@example.test"]
+    MODERATOR_PHONES = {"colt@example.test": "+17405550101"}
     SECRET_KEY = "test"
     MEDIA_DIR = BASE_DIR / "data" / "test-media"
     SUBMIT_PER_HOUR = 1000
