@@ -73,6 +73,20 @@ public copy; the original is never edited. Re-fuzz re-places the public pin. The
 interviews and goes through the same queue so the audit trail shows two steps. Takedown requests from the
 public land at the top of the queue.
 
+## Talking back to witnesses
+
+Every report with a phone number has a "Talk to the witness" box. Texts go out from the hotline number, and
+"Call them back" rings the moderator's own cell first, then dials the witness with the hotline as caller ID.
+Nobody ever sees a moderator's personal number. Everything said lands on the report and in the audit log.
+
+* Put each moderator's cell in `.env`: `MODERATOR_PHONES=colt@...:+1740XXXXXXX,owen@...:+1740XXXXXXX`
+* After a moderator texts someone, that person's texts for `THREAD_DAYS` (default 14) go into the same
+  conversation instead of starting a new report, and every moderator gets an email. Texting NEW starts a fresh
+  report. STOP, START and HELP are left to Twilio's opt-out handling and never start a report.
+* Witnesses who answered and are waiting on a reply sit at the top of the queue.
+* US carriers block texts from numbers that aren't registered for business texting (A2P 10DLC). If a send
+  fails with that reason, register the number in the Twilio console under Messaging, Regulatory Compliance.
+
 ## Crawler import, column names
 
 The importer matches loosely: narrative/text/summary/description, date/event_date/occurred,
