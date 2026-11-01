@@ -8,6 +8,7 @@ from ..reports import (get_report, set_status, update_fields, merge_candidates, 
 from ..media import decrypt_contact, media_list, encrypt_contact
 from ..geo import STATES
 from .. import alerts
+from .. import conversation
 from flask import session
 
 bp = Blueprint("mod", __name__, url_prefix="/mod")
@@ -55,7 +56,10 @@ def queue():
         r["flags"] = json.loads(r.get("hoax_flags") or "[]")
     counts = {c["status"]: c["n"] for c in db.query("SELECT status, COUNT(*) AS n FROM reports GROUP BY status")}
     takedowns = db.query("SELECT * FROM audit_log WHERE action='takedown_request' ORDER BY at DESC LIMIT 20")
-    return render_template("mod_queue.html", rows=rows, status=status, counts=counts, takedowns=takedowns)
+    replies = db.query("SELECT m.report_id, m.body, m.at FROM messages m WHERE m.direction='in' AND m.report_id IS NOT NULL "
+                       "AND NOT EXISTS (SELECT 1 FROM messages o WHERE o.report_id=m.report_id AND o.direction IN ('out','call') AND o.at > m.at) "
+                       "ORDER BY m.at DESC LIMIT 30")
+    return render_template("mod_queue.html", rows=rows, status=status, counts=counts, takedowns=takedowns, replies=replies)
 
 
 @bp.get("/report/<rid>")
@@ -69,8 +73,65 @@ def report(rid):
     r["contact_plain"] = decrypt_contact(r.get("witness_contact"))
     cands = merge_candidates(r) if r["status"] == "pending" else []
     log = get_db().query("SELECT * FROM audit_log WHERE report_id=? ORDER BY at DESC", (rid,))
+    phone = _witness_phone(r)
+    from .hotline import phone_ref
+    msgs = conversation.thread(rid, phone_ref(phone) if phone else None)
+    can_call = g.moderator.lower() in current_app.config["MODERATOR_PHONES"]
     return render_template("mod_report.html", r=r, cands=cands, log=log, categories=CATEGORIES, tiers=TIERS,
-                           tier_label=TIER_LABEL, reasons=REJECT_REASONS, precisions=PRECISIONS, states=STATES)
+                           tier_label=TIER_LABEL, reasons=REJECT_REASONS, precisions=PRECISIONS, states=STATES,
+                           phone=phone, thread_msgs=msgs, can_call=can_call)
+
+
+def _witness_phone(r):
+    """The witness's number if they left one (hotline texts and calls, or a phone on the web form)."""
+    c = decrypt_contact(r.get("witness_contact"))
+    if not c or "@" in c:
+        return None
+    digits = "".join(ch for ch in c if ch.isdigit())
+    if c.strip().startswith("+") and len(digits) >= 10:
+        return "+" + digits
+    if len(digits) == 10:
+        return "+1" + digits
+    if len(digits) == 11 and digits.startswith("1"):
+        return "+" + digits
+    return None
+
+
+@bp.post("/report/<rid>/text")
+@login_required
+def text_witness(rid):
+    r = get_report(rid)
+    if not r:
+        abort(404)
+    phone = _witness_phone(r)
+    body = (request.form.get("body") or "").strip()
+    if not phone:
+        flash("No phone number on this report, so there's nobody to text.")
+    elif not body:
+        flash("Type something first.")
+    elif len(body) > 1200:
+        flash("Keep it under 1,200 characters. That's already eight texts.")
+    else:
+        from .hotline import phone_ref
+        ok, err = conversation.send_text(rid, phone_ref(phone), phone, body, g.moderator)
+        flash("Sent from the hotline number." if ok else f"Not sent: {err}.")
+    return redirect(url_for("mod.report", rid=rid) + "#talk")
+
+
+@bp.post("/report/<rid>/call")
+@login_required
+def call_witness(rid):
+    r = get_report(rid)
+    if not r:
+        abort(404)
+    phone = _witness_phone(r)
+    if not phone:
+        flash("No phone number on this report.")
+    else:
+        from .hotline import phone_ref
+        ok, err = conversation.start_callback(rid, phone_ref(phone), phone, g.moderator)
+        flash("Your phone is ringing. Pick up and Twilio dials them from the hotline number." if ok else f"Call not started: {err}.")
+    return redirect(url_for("mod.report", rid=rid) + "#talk")
 
 
 @bp.post("/report/<rid>/approve")
