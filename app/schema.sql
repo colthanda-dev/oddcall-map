@@ -94,3 +94,18 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_rate ON rate_limits(key, at);
+
+-- Two-way hotline: moderator replies, witness answers, callbacks. One row per text or call.
+CREATE TABLE IF NOT EXISTS messages (
+  id TEXT PRIMARY KEY,
+  report_id TEXT,
+  phone_ref TEXT NOT NULL,        -- same hash as reports.source_ref for texters; never the number
+  direction TEXT NOT NULL,        -- out, in, call
+  body TEXT,
+  actor TEXT NOT NULL,            -- moderator email, or 'witness'
+  twilio_sid TEXT,
+  status TEXT,                    -- sent, failed: <reason>, received, ringing
+  at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_messages_report ON messages(report_id);
+CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone_ref, at);
