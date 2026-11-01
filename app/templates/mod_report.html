@@ -13,6 +13,20 @@
   <h3>Witness (moderator only)</h3>
   <p>Shown as: <b>{{ r.witness_display or 'Anonymous' }}</b> ({{ r.witness_anonymity }}) · Contact: <b>{{ r.contact_plain or 'none' }}</b> · Broadcast: {{ 'yes' if r.broadcast_consent else 'no' }}</p>
   <p class="small">Notes: {{ r.moderator_notes or '' }}</p>
+  <h3 id="talk">Talk to the witness</h3>
+  {% if phone %}
+  <p class="small">Texts and calls go out from the hotline number. They never see yours.</p>
+  {% for m in thread_msgs %}<div class="card small" style="{% if m.direction == 'in' %}border-left:3px solid #F07A2A{% endif %}">
+    <div class="k">{{ m.at[:16]|replace('T',' ') }} · {% if m.direction == 'in' %}witness{% elif m.direction == 'call' %}callback by {{ m.actor }}{% else %}{{ m.actor }}{% endif %}{% if m.status and m.status != 'received' %} · {{ m.status }}{% endif %}</div>
+    {% if m.body %}{{ m.body }}{% endif %}</div>{% endfor %}
+  <form method="post" action="{{ url_for('mod.text_witness', rid=r.id) }}">
+    <textarea name="body" maxlength="1200" style="min-height:70px" placeholder="Text them back"></textarea>
+    <button>Send text</button>
+  </form>
+  {% if can_call %}<form method="post" action="{{ url_for('mod.call_witness', rid=r.id) }}" style="margin-top:8px"><button class="ghost">Call them back (rings your phone first)</button></form>
+  {% else %}<p class="small">To call back from here, add your cell to MODERATOR_PHONES on the server.</p>{% endif %}
+  {% else %}<p class="small">No phone number on this report.</p>{% endif %}
+
   {% if r.lat %}<div id="mm" class="minimap"></div><p class="small">Red = exact (moderator only). Orange = public pin.</p>{% endif %}
 
   {% if r.status == 'pending' %}
